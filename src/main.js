@@ -90,6 +90,7 @@ cli
   .option("-f, --file <file>", "Override the config by loading a file")
   .option("-c, --cli", "[experimental] Run without GUI", undefined, "false")
   .option("-v, --verbose", "Enable verbose logging", undefined, "false")
+  .option("-k, --kiosk", "Enable kiosk mode", undefined, "false")
   .option("-V, --veryVerbose", "Log *everything*", undefined, "false")
   .option("-D, --debug", "Enable debugging tools", undefined, "false")
   .parse(process.argv);
@@ -97,6 +98,11 @@ cli
 if (cli.file) {
   global.installConfig = require(path.join(process.cwd(), cli.file));
 }
+
+global.settings = {};
+global.settings.kiosk = cli.kiosk;
+if (global.settings.kiosk)
+  mainEvent.emit("localstorage:set", "animationsDisabled", true);
 
 global.installProperties = {
   device: global.installConfig ? global.installConfig.codename : cli.device,
@@ -432,7 +438,9 @@ function createWindow() {
     height: cli.cli ? 0 : 600,
     show: !cli.cli,
     icon: path.join(__dirname, "../build/icons/icon.png"),
-    title: "UBports Installer (" + global.packageInfo.version + ")"
+    title: "UBports Installer (" + global.packageInfo.version + ")",
+    kiosk: global.settings.kiosk,
+    fullscreen: global.settings.kiosk
   });
 
   // Tasks we need for every start and restart
@@ -469,7 +477,8 @@ function createWindow() {
           "This is not the latest version of the UBports Installer! Please update: https://devices.ubuntu-touch.io/installer/" +
             (global.packageInfo.package ? global.packageInfo.package : "")
         );
-        mainWindow.webContents.send("user:update-available");
+        if (!global.settings.kiosk)
+          mainWindow.webContents.send("user:update-available");
       })
       .catch(() => {}); // Ignore errors, since this is non-essential
   });
