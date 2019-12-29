@@ -35,7 +35,6 @@ const url = require("url");
 const events = require("events");
 class event extends events {}
 
-const pug = new electronPug();
 const ipcMain = electron.ipcMain;
 let mainWindow;
 
@@ -427,7 +426,8 @@ mainEvent.on("user:no-network", () => {
 // CREATE WINDOW
 //==============================================================================
 
-function createWindow() {
+async function createWindow() {
+  let pug = await electronPug({pretty: true})
   utils.log.info(
     "Welcome to the UBports Installer version " +
       global.packageInfo.version +
@@ -440,7 +440,10 @@ function createWindow() {
     icon: path.join(__dirname, "../build/icons/icon.png"),
     title: "UBports Installer (" + global.packageInfo.version + ")",
     kiosk: global.settings.kiosk,
-    fullscreen: global.settings.kiosk
+    fullscreen: global.settings.kiosk,
+    webPreferences: {
+      nodeIntegration: true
+    }
   });
 
   // Tasks we need for every start and restart
@@ -483,13 +486,7 @@ function createWindow() {
       .catch(() => {}); // Ignore errors, since this is non-essential
   });
 
-  mainWindow.loadURL(
-    url.format({
-      pathname: path.join(__dirname, "html/index.pug"),
-      protocol: "file:",
-      slashes: true
-    })
-  );
+  mainWindow.loadURL(`file://${__dirname}/html/index.pug`);
 
   if (cli.debug) mainWindow.webContents.openDevTools();
 
